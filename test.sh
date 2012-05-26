@@ -1,2 +1,2 @@
 #!/bin/bash
-ls -l
+ls -l | tee 1.txt
