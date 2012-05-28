@@ -1,0 +1,169 @@
+#!/bin/bash
+#This sh script in order to create a new project 
+#and base on MTK6575_ICS project
+#write by eli at 2012-5-25 14:09 
+#version: V1.0
+
+#MTK项目配置目录
+MTK_CONFIG_DIR=./mediatek/config/
+MTK_CUSTOM_DIR=./mediatek/custom/
+ANDRIOD_BUILD_DIR=./build/target/product/
+MTK_VENDOR_DIR=./vendor/mediatek/
+MTK_VENDOR_SUBDIR=/artifacts/out/target/product/
+
+usage()
+{
+	echo "Usage: `basename $0`[cj|rm] new_project_name [base_project_name]"
+    echo "	the param1: select cj will create a new prj; select rm will del a prj only it,s exist! "
+	echo "	the param2: new project name must be written; "
+	echo "	the param3: base_project_name is option, if not,the defualt"
+	echo "	vaule is aux75_ics;"
+	echo "	eg:./create_project cj N612 aux75_ics OR create_project cj N612"
+	echo "	they will create a named \"N612\" new project configure file "
+	echo "	base on aux75_ics project configure!"
+	echo "	Please store this script in the top directory of MTK project!"
+}
+
+rm_allnewdir()
+{
+    rm -rf $MTK_CONFIG_DIR$New_prj >/dev/null 2>&1
+    rm -rf $MTK_CUSTOM_DIR$New_prj >/dev/null 2>&1
+    rm -rf $MTK_VENDOR_DIR$New_prj >/dev/null 2>&1
+}
+
+#Upper2Lower()
+#{
+#    if [ $# -eq 1 ]
+#    then 
+#        echo"Plase input a string!"
+#        exit 1
+#    fi
+#    return `tr "[:upper:]" "[:lower:]" <<< "$1" `
+#}
+
+#检查参数数目是否正确，暂时只能是一个或两个
+if [ $# -lt 2 ] || [ $# -gt 3 ]
+then 
+	usage
+	exit 1
+fi
+
+if [ $1 != "cj" ] && [ $1 != "rm" ]
+then 
+    usage
+    exit 12
+fi
+
+
+if [ $# -eq 2 ] && [ $1 == "rm" ]
+then
+    New_prj=$2
+    if  [ -d $MTK_CONFIG_DIR$New_prj ] && [ -d $MTK_CUSTOM_DIR$New_prj ] &&  
+        [ -d $MTK_VENDOR_DIR$New_prj$MTK_VENDOR_SUBDIR$New_prj ] &&
+        [ -f $ANDRIOD_BUILD_DIR$New_prj.mk ]
+    then 
+        echo -n "Did you want clean the $2 project? [y..n]"
+        read ANS
+        if [ $ANS = "Y" ] || [ $ANS = "y" ]
+        then    
+            rm_allnewdir
+            rm -f $ANDRIOD_BUILD_DIR$New_prj.mk >/dev/null 2>&1
+        fi
+    else
+        echo "The $New_prj project is exist!"
+    fi
+    exit 9
+fi
+
+New_prj=$2
+Old_prj="aux75_ics"
+
+#判断新的项目名是否正确，项目名只能一字母开头，不能数字或其他符合开头,
+#而且项目名的字符个数不能超过10个
+if echo $New_prj | grep '^[[:alpha:]].\{1,9\}$'  >/dev/null 2>&1
+then #availabe
+	: #do nothing 
+else
+	echo "Your new project name is incorrect!"
+	exit 2
+fi
+
+#判断是否有两个参数，若有，将第二个参数传递给Old_prj
+if [ $# -eq 3 ]
+then
+	Old_prj=$3
+#	echo $Old_prj
+fi
+
+
+
+#将项目名转换正小写
+Old_prj_temp=`tr "[:upper:]" "[:lower:]" <<< "$Old_prj" `
+Old_prj=$Old_prj_temp
+#echo $Old_prj
+
+#检查基础项目是否存在
+if [ -d $MTK_CONFIG_DIR$Old_prj ] && [ -d $MTK_CUSTOM_DIR$Old_prj ] &&  
+   [ -d $MTK_VENDOR_DIR$Old_prj$MTK_VENDOR_SUBDIR$Old_prj ] &&
+   [ -f $ANDRIOD_BUILD_DIR$Old_prj.mk ]
+then 
+#    echo "The origion project is ok!"   
+    : # ok do nothing
+else
+    echo "The origion project exist!"
+    exit 3
+fi
+
+#将新项目的项目名转换为全部是小写
+New_prj_temp=`tr "[:upper:]" "[:lower:]" <<< "$New_prj" `
+New_prj=$New_prj_temp
+
+if cp -a $MTK_CONFIG_DIR$Old_prj $MTK_CONFIG_DIR$New_prj >/dev/null 2>&1
+then 
+    echo "copy $MTK_CONFIG_DIR$New_prj success!"
+else
+    echo "`basename $0`: copy $MTK_CONFIG_DIR$New_prj fail!"
+    rm -rf $MTK_CONFIG_DIR$New_prj >/dev/null 2>&1
+    exit 4
+fi
+
+if cp -a $MTK_CUSTOM_DIR$Old_prj $MTK_CUSTOM_DIR$New_prj  >/dev/null 2>&1
+then 
+    echo "copy $MTK_CUSTOM_DIR$New_prj success!"
+else
+    echo "`basename $0`: copy $MTK_CUSTOM_DIR$New_prj fail!"
+    rm -rf $MTK_CONFIG_DIR$New_prj >/dev/null 2>&1
+    rm -rf $MTK_CUSTOM_DIR$New_prj >/dev/null 2>&1
+    exit 5
+fi
+
+if cp -a $MTK_VENDOR_DIR$Old_prj $MTK_VENDOR_DIR$New_prj  >/dev/null 2>&1
+then 
+    echo "copy $MTK_VENDOR_DIR$New_prj success!"
+else
+    echo "`basename $0`: copy $MTK_VENDOR_DIR$New_prj fail!"
+    rm_allnewdir
+    exit 6
+fi
+
+if cp -f $ANDRIOD_BUILD_DIR$Old_prj.mk $ANDRIOD_BUILD_DIR$New_prj.mk >/dev/null 2>&1
+then 
+    echo "copy $ANDRIOD_BUILD_DIR$New_prj.mk success!"
+else
+    echo "`basename $0`: copy $ANDRIOD_BUILD_DIR$New_prj.mk fail!"
+    rm_allnewdir
+    exit 7
+fi
+
+if mv $MTK_VENDOR_DIR$New_prj$MTK_VENDOR_SUBDIR$Old_prj  $MTK_VENDOR_DIR$New_prj$MTK_VENDOR_SUBDIR$New_prj >/dev/null 2>&1
+then 
+    echo "$New_prj is created success!"
+else
+    echo "$New_prj is created fail!"
+    rm_allnewdir
+fi
+   
+
+
+
+
