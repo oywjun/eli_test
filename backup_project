@@ -1,0 +1,104 @@
+#!/bin/bash
+#This sh script in order to backup a project out file
+#write by eli at 2012-6-28 11:09 
+#version: V1.0
+#modify by eli at 20/10/2012 09:23:02 
+#version: V1.1
+
+ini="makeMtk.ini"
+
+#获取项目名
+PROJECT_NAME=$(sed 's/project = //g' $ini)
+MTK_OUT=./out/target/product/$PROJECT_NAME
+
+if [ -d ${MTK_OUT} ]
+then 
+    MTK_SCATTER=`find ${MTK_OUT}/ -maxdepth 1 -name MT65*_Android_scatter*.txt`
+else
+    echo "no find $PROJECT_NAME out dir!"
+    exit 1
+fi
+
+EMMCORNAND="EMMC"
+
+if echo $MTK_SCATTER | grep -e 'MT65.\{1,9\}_Android_scatter.txt'  >/dev/null 2>&1
+then 
+    EMMCORNAND="NAND"
+else
+    if echo $MTK_SCATTER | grep -e 'MT65.\{1,9\}_Android_scatter_emmc.txt'  >/dev/null 2>&1
+    then
+       EMMCORNAND="EMMC"
+    else
+        echo "not find mtk scatter file!"
+        exit 2
+    fi
+fi
+  
+PJ_OUT=${PROJECT_NAME}_out 
+PJ_temp=${PROJECT_NAME}_temp
+
+if [ -d $PJ_OUT ]
+then
+    : #echo "$PJ_OUT is exist! "
+else
+    echo "create $PJ_OUT folder!"
+    mkdir $PJ_OUT
+fi
+    
+
+if [ -d ${PJ_OUT}/${PJ_temp} ]
+then 
+    : #echo "creat  $PJ_temp success!"
+else
+    mkdir ${PJ_OUT}/${PJ_temp} 
+fi
+
+PJ_ROOT=.
+MTK_ROOT=${PJ_ROOT}/mediatek
+PRJ_DSET=${PJ_OUT}/${PJ_temp}
+
+if [ $EMMCORNAND == "EMMC" ]
+then
+    cp -f $MTK_OUT/EBR1                 ${PRJ_DSET}/
+    cp -f $MTK_OUT/MBR                  ${PRJ_DSET}/
+    cp -f $MTK_OUT/cache.img             ${PRJ_DSET}/
+fi
+
+cp -f ${MTK_OUT}/uboot_$PROJECT_NAME.bin        ${PRJ_DSET}/
+cp -f ${MTK_OUT}/logo.bin                       ${PRJ_DSET}/
+cp -f ${MTK_OUT}/kernel_$PROJECT_NAME.bin       ${PRJ_DSET}/
+cp -f $MTK_SCATTER                              ${PRJ_DSET}/
+cp -f ${MTK_OUT}/preloader_$PROJECT_NAME.bin    ${PRJ_DSET}/
+cp -f $MTK_OUT/boot.img                         ${PRJ_DSET}/
+cp -f $MTK_OUT/DSP_BL                           ${PRJ_DSET}/
+cp -f $MTK_OUT/kernel                           ${PRJ_DSET}/
+cp -f $MTK_OUT/previous_build_config.mk         ${PRJ_DSET}/
+cp -f $MTK_OUT/ramdisk.img                      ${PRJ_DSET}/
+cp -f $MTK_OUT/ramdisk-recovery.img             ${PRJ_DSET}/
+cp -f $MTK_OUT/recovery.img                     ${PRJ_DSET}/
+cp -f $MTK_OUT/secro.img                        ${PRJ_DSET}/
+cp -f $MTK_OUT/system.img                       ${PRJ_DSET}/
+cp -f $MTK_OUT/userdata.img                     ${PRJ_DSET}/
+
+#get modem data    
+PRJ_CONFIG_PATH="./mediatek/config/${PROJECT_NAME}/ProjectConfig.mk"
+MODEM_CONFIG=$(grep '^CUSTOM_MODEM' ${PRJ_CONFIG_PATH}) #获取modme所在的行
+MODEM_CONFIG_TEMP=$(tr -d [:space:]<<<${MODEM_CONFIG})  #除去空格
+MODEM_NAME_TEMP=$(sed -e 's/#.*//g'<<<$MODEM_CONFIG_TEMP)  # 除去注释
+MODEM_NAME=$(sed 's/CUSTOM_MODEM=//g' <<<${MODEM_NAME_TEMP})  #获取modem名
+#echo $MODEM_NAME
+cp -f ${MTK_ROOT}/custom/common/modem/${MODEM_NAME}/BPL*    ${PRJ_DSET}/ 
+cp -f ${MTK_ROOT}/source/cgen/APD*                          ${PRJ_DSET}/ 
+
+ 
+var_time=`date "+%Y-%m-%d-%H-%M"`
+is7z=`which 7za`  
+
+if [ -z  $is7z ] >/dev/null 2>&1
+then 
+    echo "7za is nonexsit!"
+    tar jcvf ${PJ_OUT}/${PROJECT_NAME}-${var_time}.tar.bz2  ${PRJ_DSET}/*
+else
+    7za a -t7z -r  ${PJ_OUT}/${PROJECT_NAME}-${var_time}.7z  ${PRJ_DSET}/*
+fi
+

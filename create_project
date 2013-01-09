@@ -76,7 +76,7 @@ then
 fi
 
 New_prj=$2
-Old_prj="aux75_ics"
+Old_prj="n627"
 
 #判断新的项目名是否正确，项目名只能一字母开头，不能数字或其他符合开头,
 #而且项目名的字符个数不能超过10个
@@ -98,7 +98,7 @@ fi
 
 
 #将项目名转换正小写
-Old_prj_temp=`tr "[:upper:]" "[:lower:]" <<< "$Old_prj" `
+Old_prj_temp=`tr "[:upper:]" "[:lower:]"  <<< "$Old_prj" `
 Old_prj=$Old_prj_temp
 #echo $Old_prj
 
@@ -110,7 +110,7 @@ then
 #    echo "The origion project is ok!"   
     : # ok do nothing
 else
-    echo "The origion project exist!"
+    echo "The origion project not exist!"
     exit 3
 fi
 
@@ -129,6 +129,7 @@ fi
 
 if cp -a $MTK_CUSTOM_DIR$Old_prj $MTK_CUSTOM_DIR$New_prj  >/dev/null 2>&1
 then 
+    mv ${MTK_CUSTOM_DIR}${New_prj}/uboot/inc/configs/${Old_prj}.h   ${MTK_CUSTOM_DIR}${New_prj}/uboot/inc/configs/${New_prj}.h
     echo "copy $MTK_CUSTOM_DIR$New_prj success!"
 else
     echo "`basename $0`: copy $MTK_CUSTOM_DIR$New_prj fail!"
